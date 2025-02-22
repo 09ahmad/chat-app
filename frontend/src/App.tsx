@@ -1,35 +1,52 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useEffect, useRef, useState } from "react";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [messages, setMessages] = useState(["Hii there", "hiii"]);
+  const wsRef = useRef();
+  useEffect(() => {
+    const ws = new WebSocket("ws://localhost:8080")
+    ws.onmessage = (event) => {
+      setMessages(m => [...m, event.data]);
+    }
+    wsRef.current = ws;
 
+    ws.onopen = () => {
+      ws.send(JSON.stringify({
+        type: "join",
+        payload: {
+          roodId: "red"
+        }
+      }))
+    }
+    return () => {
+      ws.close()
+    }
+  }, [])
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+    <div className="h-screen bg-black">
+      <br /> <br />
+      <div className="h-[90vh]">
+        {messages.map(message => <div className="m-8">
+          <span className="bg-white p-4 rounded ">
+            {message}
+          </span>
+        </div>)}
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
+      <div className="w-full bg-white flex">
+        <input id="message" className="flex-1 p-4" />
+        <button onClick={() => {
+          const message = document.getElementById("message")?.value;
+          wsRef.current.send(JSON.stringify({
+            type: "chat",
+            payload: {
+              message: message
+            }
+          }))
+        }} className="bg-purple-600 text-white p-4"> Send Message</button>
       </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+
+    </div>
   )
 }
 
-export default App
+export default App;
